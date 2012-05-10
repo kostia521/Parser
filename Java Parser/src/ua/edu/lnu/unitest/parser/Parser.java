@@ -1,12 +1,14 @@
 package ua.edu.lnu.unitest.parser;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 
 public class Parser {
@@ -23,7 +25,7 @@ public class Parser {
 	private int level;
 	private int time;
 
-	// private StringBuilder inTest = new StringBuilder();
+	private StringBuilder outTest = new StringBuilder();
 
 	public Parser() {
 
@@ -150,7 +152,7 @@ public class Parser {
 		String in = null;
 
 		while (true) {
-			
+
 			System.out.print(msg);
 			in = br.readLine();
 
@@ -171,13 +173,13 @@ public class Parser {
 				return;
 		}
 	}
-	
+
 	private void showProps() {
-		
+
 		System.out.println("Chapter: " + chapter);
 		System.out.println("Start index: " + beginValue);
 		System.out.println("Level: " + level);
-		
+
 		System.out.println("Input file: " + inFileName);
 		System.out.println("Output file: " + outFileName);
 	}
@@ -185,9 +187,22 @@ public class Parser {
 	/**
 	 * Write parsed tests to file
 	 */
-	private int writeToFile(StringBuilder sb) {
+	private void writeToFile(String str) {
 
-		return 0;
+		try {
+			BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(
+					new FileOutputStream(new File(outFileName)), "UTF-16"));
+			
+			bw.write(str);
+			bw.close();
+			
+		} catch (FileNotFoundException e) {
+			System.out.println("File didn't created");
+		} catch (UnsupportedEncodingException e) {
+			System.err.println("Unknown encoding");
+		} catch (IOException e) {
+			System.err.println("Error writing to file");
+		}
 	}
 
 	public void parseLine() {
@@ -201,15 +216,17 @@ public class Parser {
 
 		getParams();
 		showProps();
-		
+
 		openInputFile();
+		
+		outTest.append("Тест");
+		
+		writeToFile(outTest.toString());
 	}
 
 	public static void main(String[] args) {
 
-		Parser parser = new Parser();
-
-		parser.run();
+		new Parser().run();
 
 	}
 
