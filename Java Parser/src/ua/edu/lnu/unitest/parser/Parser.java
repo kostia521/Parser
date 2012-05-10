@@ -8,88 +8,178 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
-import java.util.regex.*;
 
-/**
- * Parser for Ohrenda's test
- * Question must be formatted like this:
- * <p i>This is a question:
- * <br>1) this is first answer;
- * <br>2) this is second answer;
- * <br>3) this is third answer;
- * <br>#23
- * @author KD
- *
- */
 public class Parser {
-	/**
-	 * Name of input file
-	 */
+
+	private char separator;
+
 	private String inFileName;
-	/**
-	 * Name of output file
-	 */
 	private String outFileName;
-	/**
-	 * Var to store input text
-	 */
-	private StringBuilder inTest = new StringBuilder();
-	/**
-	 * Var to store formatted text
-	 */
-	private StringBuilder outTest = new StringBuilder();
+
+	private int beginValue;
+	private int counter;
+
+	private int chapter;
+	private int level;
+	private int time;
+
+	// private StringBuilder inTest = new StringBuilder();
 
 	public Parser() {
 
 		inFileName = "input.txt";
-		outFileName = "output.txt";
-	}
+		outFileName = "out_".intern() + inFileName;
 
-	public Parser(String in, String out) {
+		chapter = 1;
+		beginValue = 1;
+		counter = 0;
+		level = 1;
+		time = 60;
 
-		inFileName = in;
-		outFileName = out;
+		separator = ')';
 	}
 
 	/**
-	 * Open input text file and read it to memory
+	 * Open input text file
+	 * 
+	 * @return <b>BufferedReader</b> or <b>null</b> if was errors with file
 	 */
-	private boolean openInputFile() {
+	private BufferedReader openInputFile() {
 
 		BufferedReader br = null;
 
 		try {
-//			br = new BufferedReader(new FileReader(inFileName));
-			
-			br = new BufferedReader(new InputStreamReader(new FileInputStream(inFileName), "UTF-16"));
-			
+			br = new BufferedReader(new InputStreamReader(new FileInputStream(
+					new File(inFileName)), "UTF-16"));
 		} catch (FileNotFoundException e) {
 			System.out.println("File \"" + this.inFileName
 					+ "\" doesn't exist ");
-			return false;
+			return null;
 		} catch (UnsupportedEncodingException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			System.out.println("Unknown encoding");
+			return null;
 		}
 
-		String str = null;
+		return br;
+	}
+
+	/**
+	 * Get parameters from user
+	 */
+	private void getParams() {
+
+		int val;
+		String in = null;
+		BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+
 		try {
-			while (true) {
-				str = br.readLine();
-				if (str == null)
-					break;
-				if (str.length()!=0) {
-					inTest.append(str);
-					inTest.append("\n");
-				}
-				
-			}
+			/**
+			 * get input file
+			 */
+			getFileName(br, "Input file [" + inFileName + "]: ");
+
+			/**
+			 * get chapter
+			 */
+			val = getIntVal(br, "Chapter [" + chapter + "]: ");
+			if (val > 0)
+				chapter = val;
+
+			/**
+			 * get begin value
+			 */
+			val = getIntVal(br, "Start index [" + beginValue + "]: ");
+			if (val > 0)
+				beginValue = val;
+
+			/**
+			 * get level value
+			 */
+			val = getIntVal(br, "Level [" + level + "]: ");
+			if (val > 0)
+				level = val;
+
 		} catch (IOException e) {
-			System.out
-					.println("Error reading file \"" + this.inFileName + "\"");
-			return false;
+			System.err
+					.println("Error reading input params. The program will be terminated");
+			System.exit(1);
 		}
-		return true;
+	}
+
+	/**
+	 * Get int value from user and parse it to int
+	 * 
+	 * @param br
+	 *            BufferedReader
+	 * @param msg
+	 * @return <b>0</b> if was pressed <b>Enter</b>
+	 * @throws IOException
+	 */
+	private int getIntVal(BufferedReader br, String msg) throws IOException {
+
+		String in = null;
+
+		while (true) {
+
+			System.out.print(msg);
+			in = br.readLine();
+
+			if (in.length() == 0)
+				return 0;
+
+			try {
+
+				return Integer.parseInt(in, 10);
+
+			} catch (NumberFormatException e) {
+				System.out.println("Incorrect value");
+				continue;
+			}
+		}
+	}
+
+	/**
+	 * Get name of input file
+	 * 
+	 * @param br
+	 * @return
+	 * @throws IOException
+	 */
+	private void getFileName(BufferedReader br, String msg) throws IOException {
+
+		String in = null;
+
+		while (true) {
+			
+			System.out.print(msg);
+			in = br.readLine();
+
+			if (in != null && in.length() > 0) {
+
+				// Check file's extension
+				if (!in.endsWith(".txt")) {
+					System.out.println("Incorrect file extension");
+					continue;
+				}
+
+				this.inFileName = in;
+				this.outFileName = "out_" + inFileName;
+
+				return;
+
+			} else
+				return;
+		}
+	}
+	
+	private void showProps() {
+		
+		System.out.println("Chapter: " + chapter);
+		System.out.println("Start index: " + beginValue);
+		System.out.println("Level: " + level);
+		
+		System.out.println("Input file: " + inFileName);
+		System.out.println("Output file: " + outFileName);
 	}
 
 	/**
@@ -100,33 +190,26 @@ public class Parser {
 		return 0;
 	}
 
-	public void parse() {
+	public void parseLine() {
 
-		if (!openInputFile()) {
-			System.exit(1);
-		}
-		
-//		System.out.println("Input:");
-//		System.out.println(inTest.toString());
-		
-		String string = inTest.toString();
-		System.out.println(string.trim());
-		
-		Pattern p = Pattern.compile("\\p{L}*");
+	}
 
-		Matcher m = p.matcher(string);
-		
-		System.out.println(m.matches());
-		
-		
+	/**
+	 * Runs parser
+	 */
+	public void run() {
 
+		getParams();
+		showProps();
+		
+		openInputFile();
 	}
 
 	public static void main(String[] args) {
 
-		Parser parser = new Parser("input2.txt", "");
+		Parser parser = new Parser();
 
-		parser.parse();
+		parser.run();
 
 	}
 
