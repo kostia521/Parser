@@ -10,8 +10,19 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
 
 public class Parser {
+
+	private static final String ERROR_READ_FILE = "Error while reading file";
+	private static final String ERROR_INCORRECT_FILE_EXTENSION = "Incorrect file extension";
+	private static final String ERROR_INCORRECT_VALUE = "Incorrect value";
+	private static final String ERROR_READ_INPUT_PARAMS = "Error reading input params. The program will be terminated";
+	private static final String ERROR_WRITING_TO_FILE = "Error writing to file";
+	private static final String ERROR_UNKNOWN_ENCODING = "Unknown encoding";
+	private static final String ERROR_FILE_DIDN_T_CREATED = "File didn't created";
+	private static final String ERROR_INCORRECT_FORMAT = "Incorrect formatting";
+	private static final String ERROR_ANSWERS_MISSED = "Answers are missed";
 
 	private char separator;
 
@@ -24,6 +35,8 @@ public class Parser {
 	private int chapter;
 	private int level;
 	private int time;
+	private int variant;
+	private int type;
 
 	private StringBuilder outTest = new StringBuilder();
 
@@ -32,12 +45,14 @@ public class Parser {
 		inFileName = "input.txt";
 		outFileName = "out_".intern() + inFileName;
 
-		chapter = 1;
-		beginValue = 1;
 		counter = 0;
+		variant = 0;
+		chapter = 1;
 		level = 1;
+		type = 1;
 		time = 60;
 
+		beginValue = 1;
 		separator = ')';
 	}
 
@@ -58,7 +73,7 @@ public class Parser {
 					+ "\" doesn't exist ");
 			return null;
 		} catch (UnsupportedEncodingException e) {
-			System.out.println("Unknown encoding");
+			System.out.println(ERROR_UNKNOWN_ENCODING);
 			return null;
 		}
 
@@ -102,8 +117,7 @@ public class Parser {
 				level = val;
 
 		} catch (IOException e) {
-			System.err
-					.println("Error reading input params. The program will be terminated");
+			System.err.println(ERROR_READ_INPUT_PARAMS);
 			System.exit(1);
 		}
 	}
@@ -134,7 +148,7 @@ public class Parser {
 				return Integer.parseInt(in, 10);
 
 			} catch (NumberFormatException e) {
-				System.out.println("Incorrect value");
+				System.out.println(ERROR_INCORRECT_VALUE);
 				continue;
 			}
 		}
@@ -160,7 +174,7 @@ public class Parser {
 
 				// Check file's extension
 				if (!in.endsWith(".txt")) {
-					System.out.println("Incorrect file extension");
+					System.out.println(ERROR_INCORRECT_FILE_EXTENSION);
 					continue;
 				}
 
@@ -192,21 +206,118 @@ public class Parser {
 		try {
 			BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(
 					new FileOutputStream(new File(outFileName)), "UTF-16"));
-			
+
 			bw.write(str);
 			bw.close();
-			
+
 		} catch (FileNotFoundException e) {
-			System.out.println("File didn't created");
+			System.out.println(ERROR_FILE_DIDN_T_CREATED);
 		} catch (UnsupportedEncodingException e) {
-			System.err.println("Unknown encoding");
+			System.err.println(ERROR_UNKNOWN_ENCODING);
 		} catch (IOException e) {
-			System.err.println("Error writing to file");
+			System.err.println(ERROR_WRITING_TO_FILE);
 		}
 	}
 
-	public void parseLine() {
+	/**
+	 * Process tests
+	 * 
+	 * @param br
+	 * @param sb
+	 */
+	private void parse(BufferedReader br, StringBuilder sb) {
 
+		int lineCounter = 0; // Needs to show in which line was found error
+		String head = null; // String for question
+		String line = null;
+
+		if (br == null || sb == null)
+			return;
+
+		ArrayList<String> answers = new ArrayList<String>(); // Array to store
+																// answers
+		// Loop for processing file
+		while (true) {
+			try {
+				line = br.readLine(); // Read next line
+
+				if (line == null)
+					break; // End of stream reached
+
+				lineCounter++; // Increase line counter
+
+				line = line.trim(); // Skip white spaces
+				if (line.isEmpty())
+					continue;
+
+				head = "№ " + (beginValue + counter) + ", " + variant + ", "
+						+ chapter + ", " + level + ", " + type + ", " + time
+						+ "\n";
+				sb.append(head); // Write head to buffer
+				sb.append(line); // Write question to buffer
+				sb.append("\n");
+
+				// Process answers
+				char ch;
+				while (true) {
+					line = br.readLine();
+
+					if (line == null)
+						break; // End of stream reached
+
+					line = line.trim(); // Delete white spaces at the begin and
+										// end of line
+					try {
+						ch = line.charAt(0); // Check if line has numbers with
+												// correct answers
+						if (ch == '#')
+							decodeAnswers(line, answers);
+
+					} catch (IndexOutOfBoundsException e) {
+						/*
+						 * System.err.println(ERROR_INCORRECT_FORMATTING + " #"
+						 * + lineCounter);
+						 */
+						throw new ParserException(ERROR_INCORRECT_FORMAT + " #"
+								+ lineCounter);
+					} catch (ParserException e) {
+						// TODO Auto-generated catch block
+						System.err.println(e.getMessage());
+					}
+				}
+
+				counter++;
+
+			} catch (IOException e) {
+				System.err.println(ERROR_READ_FILE);
+				return;
+			} catch (ParserException e) {
+				System.err.println(e.getMessage());
+				break;
+			}
+		} // end of while
+
+		try {
+			br.close();
+		} catch (IOException e) {
+
+		}
+	}
+
+	/**
+	 * Decodes answers from old format to new format
+	 * 
+	 * @param line
+	 *            string with correct answer code
+	 * @param answers
+	 *            array with answers that should be decoded
+	 * @throws ParserException
+	 */
+	private void decodeAnswers(String line, ArrayList answers)
+			throws ParserException {
+
+		if (answers.size() == 0)
+			throw new ParserException("No answers were found");
 	}
 
 	/**
@@ -214,19 +325,37 @@ public class Parser {
 	 */
 	public void run() {
 
+		/**
+		 * Input parameters
+		 */
 		getParams();
-		showProps();
+		/**
+		 * Show inputed parameters
+		 */
+		// showProps();
+		/**
+		 * Open input file
+		 */
+		parse(openInputFile(), outTest);
 
-		openInputFile();
-		
-		outTest.append("Тест");
-		
+		/**
+		 * Write formated test to file
+		 */
 		writeToFile(outTest.toString());
+
 	}
 
 	public static void main(String[] args) {
 
 		new Parser().run();
+
+	}
+
+	public static class ParserException extends Exception {
+
+		public ParserException(String string) {
+			super(string);
+		}
 
 	}
 
