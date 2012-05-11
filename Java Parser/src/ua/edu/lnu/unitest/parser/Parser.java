@@ -11,9 +11,15 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class Parser {
 
+	// private static final String FILE_ENCODING = "UTF-16";
+	private static final String FILE_ENCODING = "WINDOWS-1251";
+	private static final String ERROR_NUMBER_OF_ANSWERS_MISTMACH = "Number of correct answers doesn't match to number of answers";
+	private static final String ERROR_INCORRECT_CODES = "Incorrect codes";
 	private static final String ERROR_READ_FILE = "Error while reading file";
 	private static final String ERROR_INCORRECT_FILE_EXTENSION = "Incorrect file extension";
 	private static final String ERROR_INCORRECT_VALUE = "Incorrect value";
@@ -23,6 +29,22 @@ public class Parser {
 	private static final String ERROR_FILE_DIDN_T_CREATED = "File didn't created";
 	private static final String ERROR_INCORRECT_FORMAT = "Incorrect formatting";
 	private static final String ERROR_ANSWERS_MISSED = "Answers are missed";
+
+	private final static String QUESTION_PATTERN = "^[Р-пр-џ]"; // First
+																// character
+																// must be a
+																// letter
+	private final static String ANSWER_PATTERN = "^[\\d]\\s*\\)"; // First
+																	// character
+																	// must be a
+																	// digit
+																	// with
+																	// bracket
+	private final static String CODE_PATTERN = "^[\\#][\\d+]"; // First
+																// character in
+																// line with
+																// code must be
+																// #
 
 	private char separator;
 
@@ -38,6 +60,7 @@ public class Parser {
 	private int variant;
 	private int type;
 
+	private StringBuilder inTest = new StringBuilder();
 	private StringBuilder outTest = new StringBuilder();
 
 	public Parser() {
@@ -61,23 +84,47 @@ public class Parser {
 	 * 
 	 * @return <b>BufferedReader</b> or <b>null</b> if was errors with file
 	 */
-	private BufferedReader openInputFile() {
+	private boolean readFile() {
 
 		BufferedReader br = null;
+		String line = null;
 
 		try {
 			br = new BufferedReader(new InputStreamReader(new FileInputStream(
-					new File(inFileName)), "UTF-16"));
+					new File(inFileName)), FILE_ENCODING));
+
+			while (true) {
+				line = br.readLine();
+
+				if (line == null)
+					break;
+
+				line = line.trim();
+
+				if (line.isEmpty())
+					continue;
+
+				inTest.append(line);
+				inTest.append("\n".intern());
+			}
 		} catch (FileNotFoundException e) {
 			System.out.println("File \"" + this.inFileName
 					+ "\" doesn't exist ");
-			return null;
+			return false;
 		} catch (UnsupportedEncodingException e) {
 			System.out.println(ERROR_UNKNOWN_ENCODING);
-			return null;
+			return false;
+		} catch (IOException e) {
+			System.out.println(ERROR_READ_FILE);
+			return false;
+		}
+		try {
+			br.close();
+		} catch (IOException e) {
+			// Do nothing
 		}
 
-		return br;
+		return true;
 	}
 
 	/**
@@ -201,17 +248,17 @@ public class Parser {
 	/**
 	 * Write parsed tests to file
 	 */
-	private void writeToFile(String str) {
+	private void writeFile() {
 
 		try {
 			BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(
-					new FileOutputStream(new File(outFileName)), "UTF-16"));
+					new FileOutputStream(new File(outFileName)), FILE_ENCODING));
 
-			bw.write(str);
+			bw.write(outTest.toString());
 			bw.close();
 
 		} catch (FileNotFoundException e) {
-			System.out.println(ERROR_FILE_DIDN_T_CREATED);
+			System.out.println(ERROR_WRITING_TO_FILE);
 		} catch (UnsupportedEncodingException e) {
 			System.err.println(ERROR_UNKNOWN_ENCODING);
 		} catch (IOException e) {
@@ -225,82 +272,65 @@ public class Parser {
 	 * @param br
 	 * @param sb
 	 */
-	private void parse(BufferedReader br, StringBuilder sb) {
+	private void parse() {
 
-		int lineCounter = 0; // Needs to show in which line was found error
-		String head = null; // String for question
+		int start = 0;
+		int end = 0;
+		int lineCounter = 0;
+		boolean f_question = false;
+		boolean f_answer = false;
+		boolean f_codeline = false;
+
 		String line = null;
 
-		if (br == null || sb == null)
-			return;
+		Matcher q_matcher = null;
+		Matcher a_matcher = null;
+		Matcher c_matcher = null;
 
-		ArrayList<String> answers = new ArrayList<String>(); // Array to store
-																// answers
-		// Loop for processing file
-		while (true) {
-			try {
-				line = br.readLine(); // Read next line
+		Pattern q_pattern = Pattern.compile(QUESTION_PATTERN,
+				Pattern.UNICODE_CASE | Pattern.CASE_INSENSITIVE);
+		Pattern a_pattern = Pattern.compile(ANSWER_PATTERN,
+				Pattern.UNICODE_CASE | Pattern.CASE_INSENSITIVE);
+		Pattern c_pattern = Pattern.compile(CODE_PATTERN, Pattern.UNICODE_CASE
+				| Pattern.CASE_INSENSITIVE);
 
-				if (line == null)
-					break; // End of stream reached
+		while (inTest.length() > 0) {
+			end = inTest.indexOf("\n"); // Find end of line
+			line = inTest.substring(start, end); // Get line
 
-				lineCounter++; // Increase line counter
+			q_matcher = q_pattern.matcher(line);
+			a_matcher = a_pattern.matcher(line);
+			c_matcher = c_pattern.matcher(line);
 
-				line = line.trim(); // Skip white spaces
-				if (line.isEmpty())
-					continue;
-
-				head = "Й " + (beginValue + counter) + ", " + variant + ", "
-						+ chapter + ", " + level + ", " + type + ", " + time
-						+ "\n";
-				sb.append(head); // Write head to buffer
-				sb.append(line); // Write question to buffer
-				sb.append("\n");
-
-				// Process answers
-				char ch;
-				while (true) {
-					line = br.readLine();
-
-					if (line == null)
-						break; // End of stream reached
-
-					line = line.trim(); // Delete white spaces at the begin and
-										// end of line
-					try {
-						ch = line.charAt(0); // Check if line has numbers with
-												// correct answers
-						if (ch == '#')
-							decodeAnswers(line, answers);
-
-					} catch (IndexOutOfBoundsException e) {
-						/*
-						 * System.err.println(ERROR_INCORRECT_FORMATTING + " #"
-						 * + lineCounter);
-						 */
-						throw new ParserException(ERROR_INCORRECT_FORMAT + " #"
-								+ lineCounter);
-					} catch (ParserException e) {
-						// TODO Auto-generated catch block
-						System.err.println(e.getMessage());
-					}
+			if (q_matcher.find()) {
+				if (f_question == true) {
+					System.err.println(ERROR_INCORRECT_FORMAT);
+					break;
+				} else {
+					f_question = true;
+					// Execute process question line
 				}
-
-				counter++;
-
-			} catch (IOException e) {
-				System.err.println(ERROR_READ_FILE);
-				return;
-			} catch (ParserException e) {
-				System.err.println(e.getMessage());
+			} else if (a_matcher.find()) {
+				if (f_question == false) {
+					System.err.println(ERROR_INCORRECT_FORMAT);
+					break;
+				} else {
+					f_answer = true;
+					// Execute process answer
+				}
+			} else if (c_matcher.find()) {
+				if (f_question == false || f_answer == false) {
+					System.err.println(ERROR_INCORRECT_FORMAT);
+					break;
+				} else {
+					// Execute process codes
+				}
+			} else {
+				System.err.println(ERROR_INCORRECT_FORMAT + "at line: " + line);
 				break;
 			}
-		} // end of while
 
-		try {
-			br.close();
-		} catch (IOException e) {
-
+			inTest.delete(start, end); // Delete processed string
 		}
 	}
 
@@ -313,11 +343,10 @@ public class Parser {
 	 *            array with answers that should be decoded
 	 * @throws ParserException
 	 */
-	private void decodeAnswers(String line, ArrayList answers)
+	private void decodeAnswers(String line, ArrayList<String> answers)
 			throws ParserException {
 
-		if (answers.size() == 0)
-			throw new ParserException("No answers were found");
+	
 	}
 
 	/**
@@ -328,20 +357,21 @@ public class Parser {
 		/**
 		 * Input parameters
 		 */
-		getParams();
+		// getParams();
 		/**
 		 * Show inputed parameters
 		 */
 		// showProps();
 		/**
-		 * Open input file
+		 * Open input file and parse it
 		 */
-		parse(openInputFile(), outTest);
+		if (readFile())
+			parse();
 
 		/**
 		 * Write formated test to file
 		 */
-		writeToFile(outTest.toString());
+		writeFile();
 
 	}
 
