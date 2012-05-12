@@ -30,21 +30,14 @@ public class Parser {
 	private static final String ERROR_INCORRECT_FORMAT = "Incorrect formatting";
 	private static final String ERROR_ANSWERS_MISSED = "Answers are missed";
 
-	private final static String QUESTION_PATTERN = "^[Р-пр-џ]"; // First
-																// character
-																// must be a
-																// letter
-	private final static String ANSWER_PATTERN = "^[\\d]\\s*\\)"; // First
-																	// character
-																	// must be a
-																	// digit
-																	// with
-																	// bracket
-	private final static String CODE_PATTERN = "^[\\#][\\d+]"; // First
-																// character in
-																// line with
-																// code must be
-																// #
+	// Pattern for question. First character must be a letter
+	private final static String QUESTION_PATTERN = "^[Р-пр-џ]";
+
+	// Pattern for answers. First character must be a digit with bracket
+	private final static String ANSWER_PATTERN = "^[\\d]\\s*\\)";
+
+	// Pattern for code line. First character in line with code must be '#'
+	private final static String CODE_PATTERN = "^[\\#][\\d+]";
 
 	private char separator;
 
@@ -60,7 +53,10 @@ public class Parser {
 	private int variant;
 	private int type;
 
+	// Buffer for input text
 	private StringBuilder inTest = new StringBuilder();
+
+	// Buffer for output text
 	private StringBuilder outTest = new StringBuilder();
 
 	public Parser() {
@@ -282,11 +278,15 @@ public class Parser {
 		boolean f_codeline = false;
 
 		String line = null;
+		String head = null;
 
 		Matcher q_matcher = null;
 		Matcher a_matcher = null;
 		Matcher c_matcher = null;
 
+		ArrayList<String> answers = new ArrayList<String>(10);
+
+		// Preparing patterns
 		Pattern q_pattern = Pattern.compile(QUESTION_PATTERN,
 				Pattern.UNICODE_CASE | Pattern.CASE_INSENSITIVE);
 		Pattern a_pattern = Pattern.compile(ANSWER_PATTERN,
@@ -309,28 +309,58 @@ public class Parser {
 				} else {
 					f_question = true;
 					// Execute process question line
+
+					head = "Й " + (beginValue + counter) + ", " + variant
+							+ ", " + chapter + ", " + level + ", " + type
+							+ ", " + time + "\n";
+					outTest.append(head);
+					outTest.append(line);
+					outTest.append("\n");
+					
+					counter++;
 				}
 			} else if (a_matcher.find()) {
 				if (f_question == false) {
 					System.err.println(ERROR_INCORRECT_FORMAT);
 					break;
 				} else {
+
 					f_answer = true;
-					// Execute process answer
+					// Replace 'x)' to '-'
+					line = a_matcher.replaceFirst("-");
+					// Add answer to list of answers
+					answers.add(line);
 				}
 			} else if (c_matcher.find()) {
 				if (f_question == false || f_answer == false) {
 					System.err.println(ERROR_INCORRECT_FORMAT);
 					break;
 				} else {
-					// Execute process codes
+					// Reset flags
+					f_question = false;
+					f_answer = false;
+
+					try {
+						processAnswers(line, answers);
+						
+						for (String answer : answers) {
+							outTest.append(answer+"\n");
+						}
+						
+						// Clear buffer with answers
+						answers.clear();
+						
+					} catch (ParserException e) {
+						System.err.println(e.getMessage());
+						break;
+					}
 				}
 			} else {
 				System.err.println(ERROR_INCORRECT_FORMAT + "at line: " + line);
 				break;
 			}
 
-			inTest.delete(start, end); // Delete processed string
+			inTest.delete(start, end+1); // Delete processed string
 		}
 	}
 
@@ -343,10 +373,40 @@ public class Parser {
 	 *            array with answers that should be decoded
 	 * @throws ParserException
 	 */
-	private void decodeAnswers(String line, ArrayList<String> answers)
+	private void processAnswers(String codes, ArrayList<String> answers)
 			throws ParserException {
 
-	
+		// Delete '#'
+		codes = codes.substring(1);
+		String answer = null;
+
+		// Check if number of answers is equal or less of correct answers
+		if (answers.size() <= codes.length())
+			throw new ParserException(ERROR_NUMBER_OF_ANSWERS_MISTMACH);
+		
+		int start = 0;
+		int end = 0;
+		int index = 0;
+		
+		for (start=0, end = 1; end<=codes.length() ; start++, end++) {
+			try {
+				// Get number of answer
+				index = Integer.parseInt(codes.substring(start, end), 10);
+				// Get answer from array
+				answer = answers.get(index-1);
+				// Remove array from array
+				answers.remove(index-1);
+				// Modify answer to new format
+				answer = "+" + answer.substring(1);
+				// Insert modified answer to list
+				answers.add(index-1, answer);				
+				
+			} catch (NumberFormatException e) {
+				throw new ParserException(ERROR_INCORRECT_CODES);
+			} catch (IndexOutOfBoundsException e) {
+				throw new ParserException(ERROR_INCORRECT_CODES);
+			}			
+		}
 	}
 
 	/**
