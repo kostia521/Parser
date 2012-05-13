@@ -14,6 +14,8 @@ import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import ua.edu.lnu.unitest.parser.cl.CommandLine;
+
 public class Parser {
 
 	// private static final String FILE_ENCODING = "UTF-16";
@@ -44,7 +46,7 @@ public class Parser {
 	private String inFileName;
 	private String outFileName;
 
-	private int beginValue;
+	private int startIndex;
 	private int counter;
 
 	private int chapter;
@@ -52,6 +54,70 @@ public class Parser {
 	private int time;
 	private int variant;
 	private int type;
+	
+	public char getSeparator() {
+		return separator;
+	}
+
+	public void setSeparator(char separator) {
+		this.separator = separator;
+	}
+
+	public String getInFileName() {
+		return inFileName;
+	}
+
+	public void setInFileName(String inFileName) {
+		this.inFileName = inFileName;
+	}
+
+	public int getStartIndex() {
+		return startIndex;
+	}
+
+	public void setStartIndex(int startIndex) {
+		this.startIndex = startIndex;
+	}
+
+	public int getChapter() {
+		return chapter;
+	}
+
+	public void setChapter(int chapter) {
+		this.chapter = chapter;
+	}
+
+	public int getLevel() {
+		return level;
+	}
+
+	public void setLevel(int level) {
+		this.level = level;
+	}
+
+	public int getTime() {
+		return time;
+	}
+
+	public void setTime(int time) {
+		this.time = time;
+	}
+
+	public int getVariant() {
+		return variant;
+	}
+
+	public void setVariant(int variant) {
+		this.variant = variant;
+	}
+
+	public int getType() {
+		return type;
+	}
+
+	public void setType(int type) {
+		this.type = type;
+	}
 
 	// Buffer for input text
 	private StringBuilder inTest = new StringBuilder();
@@ -71,14 +137,16 @@ public class Parser {
 		type = 1;
 		time = 60;
 
-		beginValue = 1;
+		startIndex = 1;
 		separator = ')';
+		
+		new CommandLine(this);
 	}
 
 	/**
-	 * Open input text file
+	 * Open input text file and reads it to buffer
 	 * 
-	 * @return <b>BufferedReader</b> or <b>null</b> if was errors with file
+	 * @return <b>true</b> if done or <b>false</b> if was errors with file
 	 */
 	private boolean readFile() {
 
@@ -148,9 +216,9 @@ public class Parser {
 			/**
 			 * get begin value
 			 */
-			val = getIntVal(br, "Start index [" + beginValue + "]: ");
+			val = getIntVal(br, "Start index [" + startIndex + "]: ");
 			if (val > 0)
-				beginValue = val;
+				startIndex = val;
 
 			/**
 			 * get level value
@@ -234,7 +302,7 @@ public class Parser {
 	private void showProps() {
 
 		System.out.println("Chapter: " + chapter);
-		System.out.println("Start index: " + beginValue);
+		System.out.println("Start index: " + startIndex);
 		System.out.println("Level: " + level);
 
 		System.out.println("Input file: " + inFileName);
@@ -268,14 +336,14 @@ public class Parser {
 	 * @param br
 	 * @param sb
 	 */
-	private void parse() {
+	private void parseTests() {
 
 		int start = 0;
 		int end = 0;
-		int lineCounter = 0;
+//		int lineCounter = 0;
 		boolean f_question = false;
 		boolean f_answer = false;
-		boolean f_codeline = false;
+//		boolean f_codeline = false;
 
 		String line = null;
 		String head = null;
@@ -310,13 +378,13 @@ public class Parser {
 					f_question = true;
 					// Execute process question line
 
-					head = "¹ " + (beginValue + counter) + ", " + variant
+					head = "¹ " + (startIndex + counter) + ", " + variant
 							+ ", " + chapter + ", " + level + ", " + type
 							+ ", " + time + "\n";
 					outTest.append(head);
 					outTest.append(line);
 					outTest.append("\n");
-					
+
 					counter++;
 				}
 			} else if (a_matcher.find()) {
@@ -342,14 +410,14 @@ public class Parser {
 
 					try {
 						processAnswers(line, answers);
-						
+
 						for (String answer : answers) {
-							outTest.append(answer+"\n");
+							outTest.append(answer + "\n");
 						}
-						
+
 						// Clear buffer with answers
 						answers.clear();
-						
+
 					} catch (ParserException e) {
 						System.err.println(e.getMessage());
 						break;
@@ -360,7 +428,7 @@ public class Parser {
 				break;
 			}
 
-			inTest.delete(start, end+1); // Delete processed string
+			inTest.delete(start, end + 1); // Delete processed string
 		}
 	}
 
@@ -383,50 +451,40 @@ public class Parser {
 		// Check if number of answers is equal or less of correct answers
 		if (answers.size() <= codes.length())
 			throw new ParserException(ERROR_NUMBER_OF_ANSWERS_MISTMACH);
-		
+
 		int start = 0;
 		int end = 0;
 		int index = 0;
-		
-		for (start=0, end = 1; end<=codes.length() ; start++, end++) {
+
+		for (start = 0, end = 1; end <= codes.length(); start++, end++) {
 			try {
 				// Get number of answer
 				index = Integer.parseInt(codes.substring(start, end), 10);
 				// Get answer from array
-				answer = answers.get(index-1);
+				answer = answers.get(index - 1);
 				// Remove array from array
-				answers.remove(index-1);
+				answers.remove(index - 1);
 				// Modify answer to new format
 				answer = "+" + answer.substring(1);
 				// Insert modified answer to list
-				answers.add(index-1, answer);				
-				
+				answers.add(index - 1, answer);
+
 			} catch (NumberFormatException e) {
 				throw new ParserException(ERROR_INCORRECT_CODES);
 			} catch (IndexOutOfBoundsException e) {
 				throw new ParserException(ERROR_INCORRECT_CODES);
-			}			
+			}
 		}
 	}
 
 	/**
 	 * Runs parser
 	 */
-	public void run() {
+	public void parse() {
 
-		/**
-		 * Input parameters
-		 */
-		// getParams();
-		/**
-		 * Show inputed parameters
-		 */
-		// showProps();
-		/**
-		 * Open input file and parse it
-		 */
-		if (readFile())
-			parse();
+		if (readFile()) {
+			parseTests();
+		}
 
 		/**
 		 * Write formated test to file
@@ -437,7 +495,7 @@ public class Parser {
 
 	public static void main(String[] args) {
 
-		new Parser().run();
+		new Parser();
 
 	}
 
@@ -446,7 +504,5 @@ public class Parser {
 		public ParserException(String string) {
 			super(string);
 		}
-
 	}
-
 }
