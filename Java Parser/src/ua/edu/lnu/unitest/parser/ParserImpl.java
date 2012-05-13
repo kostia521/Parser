@@ -15,22 +15,23 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import ua.edu.lnu.unitest.parser.cl.CommandLine;
+import ua.edu.lnu.unitest.parser.interfaces.Parser;
 
-public class Parser {
+public class ParserImpl implements Parser {
 
 	// private static final String FILE_ENCODING = "UTF-16";
 	private static final String FILE_ENCODING = "WINDOWS-1251";
 	private static final String ERROR_NUMBER_OF_ANSWERS_MISTMACH = "Number of correct answers doesn't match to number of answers";
 	private static final String ERROR_INCORRECT_CODES = "Incorrect codes";
 	private static final String ERROR_READ_FILE = "Error while reading file";
-	private static final String ERROR_INCORRECT_FILE_EXTENSION = "Incorrect file extension";
+//	private static final String ERROR_INCORRECT_FILE_EXTENSION = "Incorrect file extension";
 	private static final String ERROR_INCORRECT_VALUE = "Incorrect value";
-	private static final String ERROR_READ_INPUT_PARAMS = "Error reading input params. The program will be terminated";
+//	private static final String ERROR_READ_INPUT_PARAMS = "Error reading input params. The program will be terminated";
 	private static final String ERROR_WRITING_TO_FILE = "Error writing to file";
 	private static final String ERROR_UNKNOWN_ENCODING = "Unknown encoding";
-	private static final String ERROR_FILE_DIDN_T_CREATED = "File didn't created";
+//	private static final String ERROR_FILE_DIDN_T_CREATED = "File didn't created";
 	private static final String ERROR_INCORRECT_FORMAT = "Incorrect formatting";
-	private static final String ERROR_ANSWERS_MISSED = "Answers are missed";
+//	private static final String ERROR_ANSWERS_MISSED = "Answers are missed";
 
 	// Pattern for question. First character must be a letter
 	private final static String QUESTION_PATTERN = "^[Р-пр-џ]";
@@ -52,69 +53,85 @@ public class Parser {
 	private int chapter;
 	private int level;
 	private int time;
-	private int variant;
+	private int version;
 	private int type;
 	
+	@Override
 	public char getSeparator() {
 		return separator;
 	}
 
+	@Override
 	public void setSeparator(char separator) {
 		this.separator = separator;
 	}
 
+	@Override
 	public String getInFileName() {
 		return inFileName;
 	}
 
+	@Override
 	public void setInFileName(String inFileName) {
 		this.inFileName = inFileName;
 	}
 
+	@Override
 	public int getStartIndex() {
 		return startIndex;
 	}
 
+	@Override
 	public void setStartIndex(int startIndex) {
 		this.startIndex = startIndex;
 	}
 
+	@Override
 	public int getChapter() {
 		return chapter;
 	}
 
+	@Override
 	public void setChapter(int chapter) {
 		this.chapter = chapter;
 	}
 
+	@Override
 	public int getLevel() {
 		return level;
 	}
 
+	@Override
 	public void setLevel(int level) {
 		this.level = level;
 	}
 
+	@Override
 	public int getTime() {
 		return time;
 	}
 
+	@Override
 	public void setTime(int time) {
 		this.time = time;
 	}
 
-	public int getVariant() {
-		return variant;
+	@Override
+	public int getVersion() {
+		return version;
 	}
 
-	public void setVariant(int variant) {
-		this.variant = variant;
+	@Override
+	public void setVersion(int version) {
+		this.version = version;
 	}
 
+	@Override
 	public int getType() {
 		return type;
 	}
 
+	@Override
 	public void setType(int type) {
 		this.type = type;
 	}
@@ -125,13 +142,13 @@ public class Parser {
 	// Buffer for output text
 	private StringBuilder outTest = new StringBuilder();
 
-	public Parser() {
+	public ParserImpl() {
 
 		inFileName = "input.txt";
 		outFileName = "out_".intern() + inFileName;
 
 		counter = 0;
-		variant = 0;
+		version = 0;
 		chapter = 1;
 		level = 1;
 		type = 1;
@@ -172,7 +189,7 @@ public class Parser {
 				inTest.append("\n".intern());
 			}
 		} catch (FileNotFoundException e) {
-			System.out.println("File \"" + this.inFileName
+			System.out.println("*** File \"" + this.inFileName
 					+ "\" doesn't exist ");
 			return false;
 		} catch (UnsupportedEncodingException e) {
@@ -194,44 +211,7 @@ public class Parser {
 	/**
 	 * Get parameters from user
 	 */
-	private void getParams() {
-
-		int val;
-		String in = null;
-		BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-
-		try {
-			/**
-			 * get input file
-			 */
-			getFileName(br, "Input file [" + inFileName + "]: ");
-
-			/**
-			 * get chapter
-			 */
-			val = getIntVal(br, "Chapter [" + chapter + "]: ");
-			if (val > 0)
-				chapter = val;
-
-			/**
-			 * get begin value
-			 */
-			val = getIntVal(br, "Start index [" + startIndex + "]: ");
-			if (val > 0)
-				startIndex = val;
-
-			/**
-			 * get level value
-			 */
-			val = getIntVal(br, "Level [" + level + "]: ");
-			if (val > 0)
-				level = val;
-
-		} catch (IOException e) {
-			System.err.println(ERROR_READ_INPUT_PARAMS);
-			System.exit(1);
-		}
-	}
+	
 
 	/**
 	 * Get int value from user and parse it to int
@@ -242,7 +222,7 @@ public class Parser {
 	 * @return <b>0</b> if was pressed <b>Enter</b>
 	 * @throws IOException
 	 */
-	private int getIntVal(BufferedReader br, String msg) throws IOException {
+/*	private int getIntVal(BufferedReader br, String msg) throws IOException {
 
 		String in = null;
 
@@ -264,7 +244,7 @@ public class Parser {
 			}
 		}
 	}
-
+*/
 	/**
 	 * Get name of input file
 	 * 
@@ -272,7 +252,7 @@ public class Parser {
 	 * @return
 	 * @throws IOException
 	 */
-	private void getFileName(BufferedReader br, String msg) throws IOException {
+/*	private void getFileName(BufferedReader br, String msg) throws IOException {
 
 		String in = null;
 
@@ -298,7 +278,8 @@ public class Parser {
 				return;
 		}
 	}
-
+*/
+/*
 	private void showProps() {
 
 		System.out.println("Chapter: " + chapter);
@@ -308,7 +289,7 @@ public class Parser {
 		System.out.println("Input file: " + inFileName);
 		System.out.println("Output file: " + outFileName);
 	}
-
+*/
 	/**
 	 * Write parsed tests to file
 	 */
@@ -378,7 +359,7 @@ public class Parser {
 					f_question = true;
 					// Execute process question line
 
-					head = "Й " + (startIndex + counter) + ", " + variant
+					head = "Й " + (startIndex + counter) + ", " + version
 							+ ", " + chapter + ", " + level + ", " + type
 							+ ", " + time + "\n";
 					outTest.append(head);
@@ -480,6 +461,7 @@ public class Parser {
 	/**
 	 * Runs parser
 	 */
+	@Override
 	public void parse() {
 
 		if (readFile()) {
@@ -495,11 +477,13 @@ public class Parser {
 
 	public static void main(String[] args) {
 
-		new Parser();
+		new ParserImpl();
 
 	}
 
 	public static class ParserException extends Exception {
+
+		private static final long serialVersionUID = 1L;
 
 		public ParserException(String string) {
 			super(string);
