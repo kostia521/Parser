@@ -4,7 +4,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 
-import ua.edu.lnu.unitest.parser.interfaces.Parser;
+import ua.edu.lnu.unitest.parser.TemplateParser;
 
 public class CommandLine implements Runnable {
 
@@ -19,9 +19,10 @@ public class CommandLine implements Runnable {
 	private static final String CHAPTER = "*** Chapter: ";
 	private static final String START_INDEX = "*** Initial index: ";
 	private static final String UNKNOWN_COMMAND = "***Unknown command";
-	Parser parser;
+	
+	private TemplateParser parser;
 
-	public CommandLine(Parser parser) {
+	public CommandLine(TemplateParser parser) {
 
 		this.parser = parser;
 		// Start thread
